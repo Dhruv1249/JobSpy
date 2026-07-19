@@ -28,6 +28,17 @@ from jobspy.remoteok import RemoteOK
 from jobspy.weworkremotely import WeWorkRemotely
 from jobspy.hn_hiring import HNHiring
 from jobspy.themuse import TheMuse
+from jobspy.himalayas import Himalayas
+from jobspy.jobspresso import Jobspresso
+from jobspy.rustcareers import RustCareers
+from jobspy.workingnomads import WorkingNomads
+from jobspy.web3career import Web3Career
+from jobspy.cryptojobs import CryptoJobs
+from jobspy.greenhouse import Greenhouse
+from jobspy.lever import Lever
+from jobspy.ashby import Ashby
+from jobspy.smartrecruiters import SmartRecruiters
+from jobspy.workday import Workday
 
 
 
@@ -71,6 +82,17 @@ def scrape_jobs(
         Site.WEWORKREMOTELY: WeWorkRemotely,
         Site.HN_HIRING: HNHiring,
         Site.THE_MUSE: TheMuse,
+        Site.HIMALAYAS: Himalayas,
+        Site.JOBSPRESSO: Jobspresso,
+        Site.RUST_CAREERS: RustCareers,
+        Site.WORKING_NOMADS: WorkingNomads,
+        Site.WEB3_CAREER: Web3Career,
+        Site.CRYPTO_JOBS: CryptoJobs,
+        Site.GREENHOUSE: Greenhouse,
+        Site.LEVER: Lever,
+        Site.ASHBY: Ashby,
+        Site.SMARTRECRUITERS: SmartRecruiters,
+        Site.WORKDAY: Workday,
     }
     set_logger_level(verbose)
     job_type = get_enum_from_value(job_type) if job_type else None

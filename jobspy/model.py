@@ -297,6 +297,17 @@ class Site(Enum):
     WEWORKREMOTELY = "weworkremotely"
     HN_HIRING = "hn_hiring"
     THE_MUSE = "themuse"
+    HIMALAYAS = "himalayas"
+    JOBSPRESSO = "jobspresso"
+    RUST_CAREERS = "rustcareers"
+    WORKING_NOMADS = "workingnomads"
+    WEB3_CAREER = "web3career"
+    CRYPTO_JOBS = "cryptojobs"
+    GREENHOUSE = "greenhouse"
+    LEVER = "lever"
+    ASHBY = "ashby"
+    SMARTRECRUITERS = "smartrecruiters"
+    WORKDAY = "workday"
 
 
 
