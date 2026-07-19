@@ -47,7 +47,7 @@ class HNHiring(Scraper):
         """
         Scrape job postings from Hacker News monthly hiring thread comments.
         """
-        story_search_url = "https://hn.algolia.com/api/v1/search_by_date?tags=story&query=Ask%20HN:%20Who%20is%20hiring?&hitsPerPage=1"
+        story_search_url = "https://hn.algolia.com/api/v1/search_by_date?tags=story,author_whoishiring&query=Ask%20HN:%20Who%20is%20hiring?&hitsPerPage=1"
         try:
             story_resp = self.session.get(
                 story_search_url,
