@@ -24,9 +24,12 @@ from jobspy.util import (
     desired_order,
 )
 from jobspy.ziprecruiter import ZipRecruiter
+from jobspy.remoteok import RemoteOK
+from jobspy.weworkremotely import WeWorkRemotely
+from jobspy.hn_hiring import HNHiring
+from jobspy.themuse import TheMuse
 
 
-# Update the SCRAPER_MAPPING dictionary in the scrape_jobs function
 
 def scrape_jobs(
     site_name: str | list[str] | Site | list[Site] | None = None,
@@ -63,7 +66,11 @@ def scrape_jobs(
         Site.GOOGLE: Google,
         Site.BAYT: BaytScraper,
         Site.NAUKRI: Naukri,
-        Site.BDJOBS: BDJobs,  # Add BDJobs to the scraper mapping
+        Site.BDJOBS: BDJobs,
+        Site.REMOTEOK: RemoteOK,
+        Site.WEWORKREMOTELY: WeWorkRemotely,
+        Site.HN_HIRING: HNHiring,
+        Site.THE_MUSE: TheMuse,
     }
     set_logger_level(verbose)
     job_type = get_enum_from_value(job_type) if job_type else None
