@@ -315,6 +315,9 @@ class Site(Enum):
     OTTA = "otta"
     LEVELSFYI = "levelsfyi"
     CORD = "cord"
+    AMAZON = "amazon"
+    MICROSOFT = "microsoft"
+    DIRECT_CAREERS = "direct_careers"
 
 
 

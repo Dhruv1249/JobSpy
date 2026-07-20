@@ -46,6 +46,9 @@ from jobspy.simplyhired import SimplyHired
 from jobspy.otta import Otta
 from jobspy.levelsfyi import LevelsFyi
 from jobspy.cord import Cord
+from jobspy.amazon import Amazon
+from jobspy.microsoft import Microsoft
+from jobspy.direct_careers import DirectCareers
 
 
 
@@ -107,6 +110,9 @@ def scrape_jobs(
         Site.OTTA: Otta,
         Site.LEVELSFYI: LevelsFyi,
         Site.CORD: Cord,
+        Site.AMAZON: Amazon,
+        Site.MICROSOFT: Microsoft,
+        Site.DIRECT_CAREERS: DirectCareers,
     }
     set_logger_level(verbose)
     job_type = get_enum_from_value(job_type) if job_type else None
