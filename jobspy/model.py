@@ -308,6 +308,13 @@ class Site(Enum):
     ASHBY = "ashby"
     SMARTRECRUITERS = "smartrecruiters"
     WORKDAY = "workday"
+    WELLFOUND = "wellfound"
+    DICE = "dice"
+    BUILTIN = "builtin"
+    SIMPLYHIRED = "simplyhired"
+    OTTA = "otta"
+    LEVELSFYI = "levelsfyi"
+    CORD = "cord"
 
 
 

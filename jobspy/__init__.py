@@ -39,6 +39,13 @@ from jobspy.lever import Lever
 from jobspy.ashby import Ashby
 from jobspy.smartrecruiters import SmartRecruiters
 from jobspy.workday import Workday
+from jobspy.wellfound import Wellfound
+from jobspy.dice import Dice
+from jobspy.builtin import BuiltIn
+from jobspy.simplyhired import SimplyHired
+from jobspy.otta import Otta
+from jobspy.levelsfyi import LevelsFyi
+from jobspy.cord import Cord
 
 
 
@@ -93,6 +100,13 @@ def scrape_jobs(
         Site.ASHBY: Ashby,
         Site.SMARTRECRUITERS: SmartRecruiters,
         Site.WORKDAY: Workday,
+        Site.WELLFOUND: Wellfound,
+        Site.DICE: Dice,
+        Site.BUILTIN: BuiltIn,
+        Site.SIMPLYHIRED: SimplyHired,
+        Site.OTTA: Otta,
+        Site.LEVELSFYI: LevelsFyi,
+        Site.CORD: Cord,
     }
     set_logger_level(verbose)
     job_type = get_enum_from_value(job_type) if job_type else None
