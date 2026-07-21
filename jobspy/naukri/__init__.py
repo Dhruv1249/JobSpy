@@ -54,8 +54,7 @@ class Naukri(Scraper):
             proxies=self.proxies,
             ca_cert=ca_cert,
             is_tls=False,
-            has_retry=True,
-            delay=5,
+            has_retry=False,
             clear_cookies=True,
         )
         self.session.headers.update(naukri_headers)
