@@ -49,7 +49,7 @@ class Lever(Scraper):
         if not company:
             return JobResponse(jobs=[])
 
-        url = f"{self.base_url}/{company}"
+        url = f"{self.base_url}/{company}?mode=json"
         try:
             response = self.session.get(
                 url,

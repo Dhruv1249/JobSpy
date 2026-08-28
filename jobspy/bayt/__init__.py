@@ -86,7 +86,8 @@ class BaytScraper(Scraper):
         Grabs the job results for the given query and page number.
         """
         try:
-            url = f"{self.base_url}/en/international/jobs/{query}-jobs/?page={page}"
+            sanitized_query = query.replace(" ", "-") if query else "jobs"
+            url = f"{self.base_url}/en/international/jobs/{sanitized_query}-jobs/?page={page}"
             response = self.session.get(url)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
@@ -101,17 +102,15 @@ class BaytScraper(Scraper):
         """
         Extracts the job information from a single job listing.
         """
-        # Find the h2 element holding the title and link (no class filtering)
         job_general_information = job.find("h2")
         if not job_general_information:
-            return
+            return None
 
         job_title = job_general_information.get_text(strip=True)
         job_url = self._extract_job_url(job_general_information)
         if not job_url:
-            return
+            return None
 
-        # Extract company name using the original approach:
         company_tag = job.find("div", class_="t-nowrap p10l")
         company_name = (
             company_tag.find("span").get_text(strip=True)
@@ -119,7 +118,6 @@ class BaytScraper(Scraper):
             else None
         )
 
-        # Extract location using the original approach:
         location_tag = job.find("div", class_="t-mute t-small")
         location = location_tag.get_text(strip=True) if location_tag else None
 
@@ -143,3 +141,4 @@ class BaytScraper(Scraper):
         a_tag = job_general_information.find("a")
         if a_tag and a_tag.has_attr("href"):
             return self.base_url + a_tag["href"].strip()
+        return None

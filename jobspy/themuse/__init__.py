@@ -43,59 +43,67 @@ class TheMuse(Scraper):
 
     def scrape(self, scraper_input: ScraperInput) -> JobResponse:
         """
-        Scrape job postings from The Muse.
+        Scrape job postings from The Muse public REST API with pagination.
         """
-        url = "https://www.themuse.com/api/public/jobs"
-        params = {"page": 1}
-        try:
-            response = self.session.get(
-                url,
-                params=params,
-                timeout=getattr(scraper_input, "request_timeout", 60)
-            )
-            if response.status_code != 200:
-                return JobResponse(jobs=[])
-            data = response.json()
-        except Exception:
-            return JobResponse(jobs=[])
+        base_endpoint_url = "https://www.themuse.com/api/public/jobs"
+        collected_job_posts = []
+        current_page_number = 1
+        maximum_results_wanted = scraper_input.results_wanted or 100
+        request_timeout_seconds = getattr(scraper_input, "request_timeout", 60)
 
-        jobs = []
-        search_term_lower = scraper_input.search_term.lower() if scraper_input.search_term else None
-
-        for job_data in data.get("results", []):
-            title = job_data.get("name", "")
-            company = job_data.get("company", {}).get("name", "")
-            description_html = job_data.get("contents", "")
-            description = markdown_converter(description_html) if description_html else ""
-
-            if search_term_lower:
-                title_matches = search_term_lower in title.lower()
-                company_matches = search_term_lower in company.lower()
-                desc_matches = search_term_lower in description.lower()
-                if not (title_matches or company_matches or desc_matches):
-                    continue
-
-            locations = job_data.get("locations", [])
-            location_str = locations[0].get("name", "USA") if locations else "USA"
-            location = Location(country=location_str)
-
-            job_url = job_data.get("refs", {}).get("landing_page", "")
-            emails = extract_emails_from_text(description) if description else []
-
-            jobs.append(
-                JobPost(
-                    id=str(job_data.get("id")),
-                    title=title,
-                    company_name=company,
-                    job_url=job_url,
-                    location=location,
-                    description=description,
-                    emails=emails,
-                    is_remote="remote" in location_str.lower()
+        while len(collected_job_posts) < maximum_results_wanted:
+            query_parameters = {
+                "page": current_page_number,
+                "category": "Software Engineering",
+            }
+            try:
+                api_response = self.session.get(
+                    base_endpoint_url,
+                    params=query_parameters,
+                    timeout=request_timeout_seconds,
                 )
-            )
-
-            if len(jobs) >= scraper_input.results_wanted:
+                if api_response.status_code != 200:
+                    break
+                response_json_payload = api_response.json()
+            except Exception:
                 break
 
-        return JobResponse(jobs=jobs)
+            page_job_results = response_json_payload.get("results", [])
+            if not page_job_results:
+                break
+
+            for job_record in page_job_results:
+                job_title = job_record.get("name", "")
+                company_name = job_record.get("company", {}).get("name", "")
+                description_html = job_record.get("contents", "")
+                parsed_description = markdown_converter(description_html) if description_html else ""
+
+                location_entries = job_record.get("locations", [])
+                location_name = location_entries[0].get("name", "USA") if location_entries else "USA"
+                location_object = Location(country=location_name)
+
+                job_landing_url = job_record.get("refs", {}).get("landing_page", "")
+                extracted_emails = extract_emails_from_text(parsed_description) if parsed_description else []
+
+                collected_job_posts.append(
+                    JobPost(
+                        id=str(job_record.get("id")),
+                        title=job_title,
+                        company_name=company_name,
+                        job_url=job_landing_url,
+                        location=location_object,
+                        description=parsed_description,
+                        emails=extracted_emails,
+                        is_remote="remote" in location_name.lower(),
+                    )
+                )
+
+                if len(collected_job_posts) >= maximum_results_wanted:
+                    break
+
+            total_pages_available = response_json_payload.get("page_count", 1)
+            if current_page_number >= total_pages_available:
+                break
+            current_page_number += 1
+
+        return JobResponse(jobs=collected_job_posts)

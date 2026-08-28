@@ -59,7 +59,6 @@ class RemoteOK(Scraper):
             return JobResponse(jobs=[])
 
         jobs = []
-        search_term_lower = scraper_input.search_term.lower() if scraper_input.search_term else None
 
         for job_data in data:
             if not isinstance(job_data, dict) or "legal" in job_data:
@@ -69,13 +68,6 @@ class RemoteOK(Scraper):
             company = job_data.get("company", "")
             description_html = job_data.get("description", "")
             description = markdown_converter(description_html) if description_html else ""
-
-            if search_term_lower:
-                title_matches = search_term_lower in title.lower()
-                company_matches = search_term_lower in company.lower()
-                desc_matches = search_term_lower in description.lower()
-                if not (title_matches or company_matches or desc_matches):
-                    continue
 
             location_str = job_data.get("location", "Worldwide")
             location = Location(country=location_str)
