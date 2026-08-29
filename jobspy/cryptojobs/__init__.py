@@ -85,13 +85,6 @@ class CryptoJobs(Scraper):
             description_html = description_raw.text if description_raw is not None else ""
             description = markdown_converter(description_html) if description_html else ""
 
-            if search_term_lower:
-                title_matches = search_term_lower in position.lower()
-                company_matches = search_term_lower in company.lower()
-                desc_matches = search_term_lower in description.lower()
-                if not (title_matches or company_matches or desc_matches):
-                    continue
-
             pub_date_raw = item.find("pubDate")
             date_posted = None
             if pub_date_raw is not None and pub_date_raw.text:

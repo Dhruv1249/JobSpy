@@ -70,13 +70,6 @@ class WorkingNomads(Scraper):
             description_html = job_data.get("description", "")
             description = markdown_converter(description_html) if description_html else ""
 
-            if search_term_lower:
-                title_matches = search_term_lower in title.lower()
-                company_matches = search_term_lower in company.lower()
-                desc_matches = search_term_lower in description.lower()
-                if not (title_matches or company_matches or desc_matches):
-                    continue
-
             location_str = job_data.get("location", "Worldwide")
             location = Location(country=location_str)
 

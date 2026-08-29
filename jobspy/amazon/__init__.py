@@ -34,7 +34,7 @@ class Amazon(Scraper):
             self.session.headers.update({"User-Agent": user_agent})
         else:
             self.session.headers.update({
-                "User-Agent": "JobCruiser/1.0",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
                 "Accept": "application/json"
             })
 
