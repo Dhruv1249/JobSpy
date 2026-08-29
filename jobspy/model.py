@@ -318,6 +318,7 @@ class Site(Enum):
     AMAZON = "amazon"
     MICROSOFT = "microsoft"
     DIRECT_CAREERS = "direct_careers"
+    YC_STARTUP = "yc_startup"
 
 
 

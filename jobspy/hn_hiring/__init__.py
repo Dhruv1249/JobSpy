@@ -76,9 +76,10 @@ class HNHiring(Scraper):
             return JobResponse(jobs=[])
 
         jobs = []
-        search_term_lower = scraper_input.search_term.lower() if scraper_input.search_term else None
 
         for hit in comments_data.get("hits", []):
+            if str(hit.get("parent_id")) != str(story_id):
+                continue
             comment_text_html = hit.get("comment_text", "")
             if not comment_text_html:
                 continue
@@ -102,13 +103,6 @@ class HNHiring(Scraper):
                     position = tokens[1]
                 if len(tokens) > 2:
                     location_str = tokens[2]
-
-            if search_term_lower:
-                title_matches = search_term_lower in position.lower()
-                company_matches = search_term_lower in company.lower()
-                desc_matches = search_term_lower in description.lower()
-                if not (title_matches or company_matches or desc_matches):
-                    continue
 
             created_at_str = hit.get("created_at")
             date_posted = None

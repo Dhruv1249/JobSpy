@@ -49,6 +49,7 @@ from jobspy.cord import Cord
 from jobspy.amazon import Amazon
 from jobspy.microsoft import Microsoft
 from jobspy.direct_careers import DirectCareers
+from jobspy.yc_startup import YCStartup
 
 
 
@@ -113,6 +114,7 @@ def scrape_jobs(
         Site.AMAZON: Amazon,
         Site.MICROSOFT: Microsoft,
         Site.DIRECT_CAREERS: DirectCareers,
+        Site.YC_STARTUP: YCStartup,
     }
     set_logger_level(verbose)
     job_type = get_enum_from_value(job_type) if job_type else None
