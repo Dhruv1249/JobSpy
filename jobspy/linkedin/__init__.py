@@ -237,7 +237,7 @@ class LinkedIn(Scraper):
             job_url=f"{self.base_url}/jobs/view/{job_id}",
             compensation=compensation,
             job_type=job_details.get("job_type"),
-            job_level=job_details.get("job_level", "").lower(),
+            job_level=(job_details.get("job_level") or "").lower(),
             company_industry=job_details.get("company_industry"),
             description=job_details.get("description"),
             job_url_direct=job_details.get("job_url_direct"),
@@ -254,28 +254,44 @@ class LinkedIn(Scraper):
         """
         try:
             response = self.session.get(
-                f"{self.base_url}/jobs/view/{job_id}", timeout=5
+                f"{self.base_url}/jobs/view/{job_id}", timeout=12
             )
             response.raise_for_status()
-        except:
+        except Exception:
             return {}
-        if "linkedin.com/signup" in response.url:
+
+        blocked_redirect_markers = [
+            "linkedin.com/signup",
+            "linkedin.com/authwall",
+            "linkedin.com/checkpoint",
+            "expired_jd_redirect",
+        ]
+        if any(marker in response.url for marker in blocked_redirect_markers):
             return {}
 
         soup = BeautifulSoup(response.text, "html.parser")
         div_content = soup.find(
-            "div", class_=lambda x: x and "show-more-less-html__markup" in x
+            "div", class_=lambda class_name: class_name and "show-more-less-html__markup" in class_name
         )
+        if div_content is None:
+            div_content = soup.select_one(".description__text") or soup.select_one(".show-more-less-html")
+            if div_content is not None:
+                for button_element in div_content.find_all(
+                    ["button", "span"], class_=lambda class_name: class_name and "show-more-less" in class_name
+                ):
+                    button_element.decompose()
+
         description = None
         if div_content is not None:
             div_content = remove_attributes(div_content)
             description = div_content.prettify(formatter="html")
-            if self.scraper_input.description_format == DescriptionFormat.MARKDOWN:
+            description_format = getattr(self.scraper_input, "description_format", DescriptionFormat.MARKDOWN)
+            if description_format == DescriptionFormat.MARKDOWN:
                 description = markdown_converter(description)
-            elif self.scraper_input.description_format == DescriptionFormat.PLAIN:
+            elif description_format == DescriptionFormat.PLAIN:
                 description = plain_converter(description)
         h3_tag = soup.find(
-            "h3", text=lambda text: text and "Job function" in text.strip()
+            "h3", string=lambda text_content: text_content and "Job function" in text_content.strip()
         )
 
         job_function = None
