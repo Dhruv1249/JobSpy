@@ -12,8 +12,9 @@ from jobspy.model import (
     ScraperInput,
     Site,
 )
-from jobspy.util import create_session
+from jobspy.util import create_session, create_logger
 
+log = create_logger("dice")
 
 class Dice(Scraper):
     """
@@ -55,6 +56,7 @@ class Dice(Scraper):
         Scrapes job search results from Dice HTML pages.
         """
         search_query = scraper_input.search_term or "developer"
+        log.info(f"[dice] Starting scrape for {search_query}")
         encoded_query = quote_plus(search_query)
         target_url = f"https://www.dice.com/jobs?q={encoded_query}"
         request_timeout_seconds = getattr(scraper_input, "request_timeout", 60)
@@ -62,9 +64,11 @@ class Dice(Scraper):
         try:
             http_response = self.session.get(target_url, timeout=request_timeout_seconds)
             if http_response.status_code != 200:
+                log.error(f"[dice] HTTP {http_response.status_code}: {target_url}")
                 return JobResponse(jobs=[])
             html_content = http_response.text
-        except Exception:
+        except Exception as e:
+            log.error(f"[dice] Error: {type(e).__name__}: {e}")
             return JobResponse(jobs=[])
 
         html_parser = BeautifulSoup(html_content, "html.parser")
@@ -73,6 +77,7 @@ class Dice(Scraper):
             for anchor in html_parser.find_all("a")
             if anchor.get("href") and "/job-detail/" in anchor.get("href") and anchor.get_text(strip=True)
         ]
+        log.info(f"[dice] Page 1: fetched {len(job_link_elements)} listings")
 
         collected_jobs = []
         seen_job_identifiers = set()
@@ -121,4 +126,5 @@ class Dice(Scraper):
             if len(collected_jobs) >= scraper_input.results_wanted:
                 break
 
+        log.info(f"[dice] Complete: {len(collected_jobs)} jobs found")
         return JobResponse(jobs=collected_jobs)

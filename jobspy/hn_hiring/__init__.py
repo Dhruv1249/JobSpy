@@ -16,7 +16,9 @@ from jobspy.util import (
     create_session,
     markdown_converter,
     extract_emails_from_text
-)
+, create_logger)
+
+log = create_logger("hn_hiring")
 
 class HNHiring(Scraper):
     """
@@ -47,6 +49,7 @@ class HNHiring(Scraper):
         """
         Scrape job postings from Hacker News monthly hiring thread comments.
         """
+        log.info(f"[hn_hiring] Starting scrape for {scraper_input.search_term or 'unknown'}")
         story_search_url = "https://hn.algolia.com/api/v1/search_by_date?tags=story,author_whoishiring&query=Ask%20HN:%20Who%20is%20hiring?&hitsPerPage=1"
         try:
             story_resp = self.session.get(
@@ -60,7 +63,8 @@ class HNHiring(Scraper):
             if not hits:
                 return JobResponse(jobs=[])
             story_id = hits[0].get("objectID")
-        except Exception:
+        except Exception as e:
+            log.error(f"[hn_hiring] Error: {type(e).__name__}: {e}")
             return JobResponse(jobs=[])
 
         comments_url = f"https://hn.algolia.com/api/v1/search?tags=comment,story_{story_id}&hitsPerPage=1000"
@@ -72,7 +76,8 @@ class HNHiring(Scraper):
             if comments_resp.status_code != 200:
                 return JobResponse(jobs=[])
             comments_data = comments_resp.json()
-        except Exception:
+        except Exception as e:
+            log.error(f"[hn_hiring] Error: {type(e).__name__}: {e}")
             return JobResponse(jobs=[])
 
         jobs = []
@@ -112,8 +117,8 @@ class HNHiring(Scraper):
                         created_at_str[:10],
                         "%Y-%m-%d"
                     ).date()
-                except Exception:
-                    pass
+                except Exception as date_parse_error:
+                    log.debug(f"[hn_hiring] Date parse failed for '{created_at_str[:10]}': {date_parse_error}")
 
             comment_id = hit.get("objectID")
             job_url = f"https://news.ycombinator.com/item?id={comment_id}"
@@ -136,4 +141,5 @@ class HNHiring(Scraper):
             if len(jobs) >= scraper_input.results_wanted:
                 break
 
+        log.info(f"[hn_hiring] Complete: {len(jobs)} jobs found")
         return JobResponse(jobs=jobs)

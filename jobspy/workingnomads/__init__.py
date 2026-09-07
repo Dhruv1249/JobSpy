@@ -14,8 +14,11 @@ from jobspy.model import (
 from jobspy.util import (
     create_session,
     markdown_converter,
-    extract_emails_from_text
+    extract_emails_from_text,
+    create_logger
 )
+
+log = create_logger("workingnomads")
 
 class WorkingNomads(Scraper):
     """
@@ -78,8 +81,8 @@ class WorkingNomads(Scraper):
             if pub_date_str:
                 try:
                     date_posted = datetime.strptime(pub_date_str[:10], "%Y-%m-%d").date()
-                except Exception:
-                    pass
+                except Exception as scrape_error:
+                    log.debug(f"[workingnomads] Skipping item due to error: {type(scrape_error).__name__}: {scrape_error}")
 
             emails = extract_emails_from_text(description) if description else []
 

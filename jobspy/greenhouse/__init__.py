@@ -11,7 +11,9 @@ from jobspy.model import (
     ScraperInput,
     Site
 )
-from jobspy.util import create_session
+from jobspy.util import create_session, create_logger
+
+log = create_logger("greenhouse")
 
 class Greenhouse(Scraper):
     """
@@ -44,6 +46,7 @@ class Greenhouse(Scraper):
         """
         Scrape jobs for the company slug provided in search_term.
         """
+        log.info(f"[greenhouse] Starting scrape for {scraper_input.search_term or 'unknown'}")
         company = scraper_input.search_term
         if not company:
             return JobResponse(jobs=[])
@@ -55,9 +58,11 @@ class Greenhouse(Scraper):
                 timeout=getattr(scraper_input, "request_timeout", 60)
             )
             if response.status_code != 200:
+                log.error(f"[greenhouse] HTTP {response.status_code}: {url}")
                 return JobResponse(jobs=[])
             data = response.json()
-        except Exception:
+        except Exception as e:
+            log.error(f"[greenhouse] Error: {type(e).__name__}: {e}")
             return JobResponse(jobs=[])
 
         jobs = []
@@ -82,4 +87,5 @@ class Greenhouse(Scraper):
                 )
             )
 
+        log.info(f"[greenhouse] Complete: {len(jobs)} jobs found")
         return JobResponse(jobs=jobs)

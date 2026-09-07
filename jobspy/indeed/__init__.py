@@ -118,8 +118,8 @@ class Indeed(Scraper):
             verify=False,
         )
         if not response.ok:
-            log.info(
-                f"responded with status code: {response.status_code} (submit GitHub issue if this appears to be a bug)"
+            log.error(
+                f"[indeed] HTTP {response.status_code} on page {page}: {response.text[:200]}"
             )
             return jobs, new_cursor
         data = response.json()

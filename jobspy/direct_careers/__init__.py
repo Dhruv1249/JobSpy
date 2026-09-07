@@ -328,8 +328,8 @@ class DirectCareers(Scraper):
                                 is_remote=True,
                             )
                         )
-            except Exception:
-                pass
+            except Exception as scrape_error:
+                _LOGGER.debug(f"[direct_careers] Skipping item due to error: {type(scrape_error).__name__}: {scrape_error}")
 
         return extracted_jobs
 

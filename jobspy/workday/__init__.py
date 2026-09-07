@@ -11,7 +11,9 @@ from jobspy.model import (
     ScraperInput,
     Site
 )
-from jobspy.util import create_session
+from jobspy.util import create_session, create_logger
+
+log = create_logger("workday")
 
 class Workday(Scraper):
     """
@@ -80,8 +82,8 @@ class Workday(Scraper):
                     if desc_html:
                         soup = BeautifulSoup(desc_html, "html.parser")
                         description_text = soup.get_text(separator=" ", strip=True)
-            except Exception:
-                pass
+            except Exception as scrape_error:
+                log.debug(f"[workday] Skipping item due to error: {type(scrape_error).__name__}: {scrape_error}")
 
             if not job_id:
                 job_id = path.split("_")[-1] if "_" in path else path.split("/")[-1]

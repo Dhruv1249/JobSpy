@@ -14,7 +14,9 @@ from jobspy.util import (
     create_session,
     markdown_converter,
     extract_emails_from_text
-)
+, create_logger)
+
+log = create_logger("themuse")
 
 class TheMuse(Scraper):
     """
@@ -45,6 +47,7 @@ class TheMuse(Scraper):
         """
         Scrape job postings from The Muse public REST API with pagination.
         """
+        log.info(f"[themuse] Starting scrape for {scraper_input.search_term or 'unknown'}")
         base_endpoint_url = "https://www.themuse.com/api/public/jobs"
         collected_job_posts = []
         current_page_number = 1
@@ -65,7 +68,8 @@ class TheMuse(Scraper):
                 if api_response.status_code != 200:
                     break
                 response_json_payload = api_response.json()
-            except Exception:
+            except Exception as api_error:
+                log.error(f"[themuse] API request failed on page {current_page_number}: {type(api_error).__name__}: {api_error}")
                 break
 
             page_job_results = response_json_payload.get("results", [])

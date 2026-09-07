@@ -16,7 +16,9 @@ from jobspy.util import (
     create_session,
     markdown_converter,
     extract_emails_from_text
-)
+, create_logger)
+
+log = create_logger("himalayas")
 
 class Himalayas(Scraper):
     """
@@ -47,6 +49,7 @@ class Himalayas(Scraper):
         """
         Scrape job postings from Himalayas RSS feed.
         """
+        log.info(f"[himalayas] Starting scrape for {scraper_input.search_term or 'unknown'}")
         url = "https://himalayas.app/jobs/rss"
         try:
             response = self.session.get(
@@ -54,9 +57,11 @@ class Himalayas(Scraper):
                 timeout=getattr(scraper_input, "request_timeout", 60)
             )
             if response.status_code != 200:
+                log.error(f"[himalayas] HTTP {response.status_code}: {url}")
                 return JobResponse(jobs=[])
             root = ET.fromstring(response.content)
-        except Exception:
+        except Exception as e:
+            log.error(f"[himalayas] Error: {type(e).__name__}: {e}")
             return JobResponse(jobs=[])
 
         jobs = []
@@ -94,8 +99,8 @@ class Himalayas(Scraper):
                         "%a, %d %b %Y %H:%M:%S"
                     )
                     date_posted = pub_date_parsed.date()
-                except Exception:
-                    pass
+                except Exception as date_parse_error:
+                    log.debug(f"[himalayas] Date parse failed: {date_parse_error}")
 
             emails = extract_emails_from_text(description) if description else []
 
@@ -115,4 +120,5 @@ class Himalayas(Scraper):
             if len(jobs) >= scraper_input.results_wanted:
                 break
 
+        log.info(f"[himalayas] Complete: {len(jobs)} jobs found")
         return JobResponse(jobs=jobs)

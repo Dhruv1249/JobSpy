@@ -15,7 +15,9 @@ from jobspy.util import (
     create_session,
     markdown_converter,
     extract_emails_from_text
-)
+, create_logger)
+
+log = create_logger("remoteok")
 
 class RemoteOK(Scraper):
     """
@@ -46,6 +48,7 @@ class RemoteOK(Scraper):
         """
         Scrape job postings from RemoteOK.
         """
+        log.info(f"[remoteok] Starting scrape for {scraper_input.search_term or 'unknown'}")
         url = "https://remoteok.com/api"
         try:
             response = self.session.get(
@@ -53,9 +56,11 @@ class RemoteOK(Scraper):
                 timeout=getattr(scraper_input, "request_timeout", 60)
             )
             if response.status_code != 200:
+                log.error(f"[remoteok] HTTP {response.status_code}: {url}")
                 return JobResponse(jobs=[])
             data = response.json()
-        except Exception:
+        except Exception as e:
+            log.error(f"[remoteok] Error: {type(e).__name__}: {e}")
             return JobResponse(jobs=[])
 
         jobs = []
@@ -77,8 +82,8 @@ class RemoteOK(Scraper):
             if epoch_str:
                 try:
                     date_posted = date.fromtimestamp(int(epoch_str))
-                except Exception:
-                    pass
+                except Exception as date_parse_error:
+                    log.debug(f"[remoteok] Date parse failed for epoch '{epoch_str}': {date_parse_error}")
 
             emails = extract_emails_from_text(description) if description else []
 
@@ -99,4 +104,5 @@ class RemoteOK(Scraper):
             if len(jobs) >= scraper_input.results_wanted:
                 break
 
+        log.info(f"[remoteok] Complete: {len(jobs)} jobs found")
         return JobResponse(jobs=jobs)

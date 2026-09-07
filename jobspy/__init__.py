@@ -116,7 +116,7 @@ def scrape_jobs(
         Site.DIRECT_CAREERS: DirectCareers,
         Site.YC_STARTUP: YCStartup,
     }
-    set_logger_level(verbose)
+    set_logger_level(2)
     job_type = get_enum_from_value(job_type) if job_type else None
 
     def get_site_type():
@@ -156,17 +156,15 @@ def scrape_jobs(
         scraper_class = SCRAPER_MAPPING[site]
         scraper = scraper_class(proxies=proxies, ca_cert=ca_cert, user_agent=user_agent)
         scraped_data: JobResponse = scraper.scrape(scraper_input)
-        cap_name = site.value.capitalize()
-        site_name = "ZipRecruiter" if cap_name == "Zip_recruiter" else cap_name
-        site_name = "LinkedIn" if cap_name == "Linkedin" else cap_name
-        create_logger(site_name).info(f"finished scraping")
         return site.value, scraped_data
 
     site_to_jobs_dict = {}
 
     def worker(site):
+        import time
+        start = time.time()
         site_val, scraped_info = scrape_site(site)
-        return site_val, scraped_info
+        return site_val, scraped_info, time.time() - start
 
     with ThreadPoolExecutor() as executor:
         future_to_site = {
@@ -174,8 +172,14 @@ def scrape_jobs(
         }
 
         for future in as_completed(future_to_site):
-            site_value, scraped_data = future.result()
-            site_to_jobs_dict[site_value] = scraped_data
+            site = future_to_site[future]
+            try:
+                site_value, scraped_data, elapsed = future.result()
+                site_to_jobs_dict[site_value] = scraped_data
+                count = len(scraped_data.jobs) if scraped_data.jobs else 0
+                create_logger(site_value).info(f"[{site_value}] Scraped {count} jobs in {elapsed:.1f}s")
+            except Exception as e:
+                create_logger(site.value).error(f"[{site.value}] Scraper raised {type(e).__name__}: {e}")
 
     jobs_dfs: list[pd.DataFrame] = []
 

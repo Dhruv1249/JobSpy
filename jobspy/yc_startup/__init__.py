@@ -20,7 +20,10 @@ from jobspy.util import (
     create_session,
     markdown_converter,
 )
+from jobspy.util import create_logger
 
+
+log = create_logger("yc_startup")
 
 class YCStartup(Scraper):
     """
@@ -67,6 +70,7 @@ class YCStartup(Scraper):
         """
         Scrapes job postings from Y Combinator's Inertia.js job feeds.
         """
+        log.info(f"[yc_startup] Starting scrape for {scraper_input.search_term or 'unknown'}")
         collected_jobs: list[JobPost] = []
         seen_job_identifiers: set[str] = set()
         request_timeout = getattr(scraper_input, "request_timeout", 60)
@@ -127,8 +131,8 @@ class YCStartup(Scraper):
                     if created_at_raw:
                         try:
                             date_posted = datetime.strptime(str(created_at_raw)[:10], "%Y-%m-%d").date()
-                        except Exception:
-                            pass
+                        except Exception as date_parse_error:
+                            log.debug(f"[yc_startup] Date parse failed for '{created_at_raw}': {date_parse_error}")
 
                     job_post = JobPost(
                         id=posting_id,
@@ -148,7 +152,8 @@ class YCStartup(Scraper):
                     if len(collected_jobs) >= scraper_input.results_wanted:
                         break
 
-            except Exception:
+            except Exception as company_scrape_error:
+                log.warning(f"[yc_startup] Skipping company due to error: {type(company_scrape_error).__name__}: {company_scrape_error}")
                 continue
 
             if len(collected_jobs) >= scraper_input.results_wanted:

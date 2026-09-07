@@ -12,7 +12,9 @@ from jobspy.model import (
     ScraperInput,
     Site
 )
-from jobspy.util import create_session
+from jobspy.util import create_session, create_logger
+
+log = create_logger("lever")
 
 class Lever(Scraper):
     """
@@ -45,6 +47,7 @@ class Lever(Scraper):
         """
         Scrape jobs for the company slug provided in search_term.
         """
+        log.info(f"[lever] Starting scrape for {scraper_input.search_term or 'unknown'}")
         company = scraper_input.search_term
         if not company:
             return JobResponse(jobs=[])
@@ -56,9 +59,11 @@ class Lever(Scraper):
                 timeout=getattr(scraper_input, "request_timeout", 60)
             )
             if response.status_code != 200:
+                log.error(f"[lever] HTTP {response.status_code}: {url}")
                 return JobResponse(jobs=[])
             data = response.json()
-        except Exception:
+        except Exception as e:
+            log.error(f"[lever] Error: {type(e).__name__}: {e}")
             return JobResponse(jobs=[])
 
         jobs = []
@@ -88,8 +93,8 @@ class Lever(Scraper):
                         created_at_ms / 1000.0,
                         datetime.timezone.utc
                     ).date()
-                except Exception:
-                    pass
+                except Exception as date_parse_error:
+                    log.debug(f"[lever] Failed to parse date '{created_at_ms}': {date_parse_error}")
 
             categories = job_data.get("categories", {})
             location_name = categories.get("location", "Remote")
@@ -107,4 +112,5 @@ class Lever(Scraper):
                 )
             )
 
+        log.info(f"[lever] Complete: {len(jobs)} jobs found")
         return JobResponse(jobs=jobs)

@@ -15,8 +15,11 @@ from jobspy.model import (
 from jobspy.util import (
     create_session,
     markdown_converter,
-    extract_emails_from_text
+    extract_emails_from_text,
+    create_logger
 )
+
+log = create_logger("jobspresso")
 
 class Jobspresso(Scraper):
     """
@@ -101,8 +104,8 @@ class Jobspresso(Scraper):
                         "%a, %d %b %Y %H:%M:%S"
                     )
                     date_posted = pub_date_parsed.date()
-                except Exception:
-                    pass
+                except Exception as scrape_error:
+                    log.debug(f"[jobspresso] Skipping item due to error: {type(scrape_error).__name__}: {scrape_error}")
 
             emails = extract_emails_from_text(description) if description else []
 

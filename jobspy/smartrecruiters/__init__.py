@@ -11,7 +11,9 @@ from jobspy.model import (
     ScraperInput,
     Site
 )
-from jobspy.util import create_session
+from jobspy.util import create_session, create_logger
+
+log = create_logger("smartrecruiters")
 
 class SmartRecruiters(Scraper):
     """
@@ -44,6 +46,7 @@ class SmartRecruiters(Scraper):
         """
         Scrape jobs for the company slug provided in search_term.
         """
+        log.info(f"[smartrecruiters] Starting scrape for {scraper_input.search_term or 'unknown'}")
         company = scraper_input.search_term
         if not company:
             return JobResponse(jobs=[])
@@ -55,9 +58,11 @@ class SmartRecruiters(Scraper):
                 timeout=getattr(scraper_input, "request_timeout", 60)
             )
             if response.status_code != 200:
+                log.error(f"[smartrecruiters] HTTP {response.status_code}: {url}")
                 return JobResponse(jobs=[])
             data = response.json()
-        except Exception:
+        except Exception as e:
+            log.error(f"[smartrecruiters] Error: {type(e).__name__}: {e}")
             return JobResponse(jobs=[])
 
         jobs = []
@@ -76,8 +81,8 @@ class SmartRecruiters(Scraper):
                     if desc_html:
                         soup = BeautifulSoup(desc_html, "html.parser")
                         description_text = soup.get_text(separator=" ", strip=True)
-            except Exception:
-                pass
+            except Exception as detail_error:
+                log.debug(f"[smartrecruiters] Detail fetch failed for posting {posting_id}: {type(detail_error).__name__}: {detail_error}")
 
             loc = posting.get("location", {})
             loc_parts = []
@@ -99,4 +104,5 @@ class SmartRecruiters(Scraper):
                 )
             )
 
+        log.info(f"[smartrecruiters] Complete: {len(jobs)} jobs found")
         return JobResponse(jobs=jobs)

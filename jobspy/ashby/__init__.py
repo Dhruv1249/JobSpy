@@ -11,7 +11,9 @@ from jobspy.model import (
     ScraperInput,
     Site
 )
-from jobspy.util import create_session
+from jobspy.util import create_session, create_logger
+
+log = create_logger("ashby")
 
 class Ashby(Scraper):
     """
@@ -44,6 +46,7 @@ class Ashby(Scraper):
         """
         Scrape jobs for the company slug provided in search_term.
         """
+        log.info(f"[ashby] Starting scrape for {scraper_input.search_term or 'unknown'}")
         company = scraper_input.search_term
         if not company:
             return JobResponse(jobs=[])
@@ -55,9 +58,11 @@ class Ashby(Scraper):
                 timeout=getattr(scraper_input, "request_timeout", 60)
             )
             if response.status_code != 200:
+                log.error(f"[ashby] HTTP {response.status_code}: {url}")
                 return JobResponse(jobs=[])
             data = response.json()
-        except Exception:
+        except Exception as e:
+            log.error(f"[ashby] Error: {type(e).__name__}: {e}")
             return JobResponse(jobs=[])
 
         jobs = []
@@ -82,4 +87,5 @@ class Ashby(Scraper):
                 )
             )
 
+        log.info(f"[ashby] Complete: {len(jobs)} jobs found")
         return JobResponse(jobs=jobs)

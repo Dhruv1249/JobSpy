@@ -91,7 +91,7 @@ class LinkedIn(Scraper):
         while continue_search():
             request_count += 1
             log.info(
-                f"search page: {request_count} / {math.ceil(scraper_input.results_wanted / 10)}"
+                f"[linkedin] Fetching page {request_count}, got {len(job_list)} listings so far"
             )
             params = {
                 "keywords": scraper_input.search_term,
@@ -124,24 +124,18 @@ class LinkedIn(Scraper):
                 )
                 if response.status_code not in range(200, 400):
                     if response.status_code == 429:
-                        err = (
-                            f"429 Response - Blocked by LinkedIn for too many requests"
-                        )
+                        log.warning(f"[linkedin] Rate limited (429), sleeping {self.delay}s")
                     else:
-                        err = f"LinkedIn response status code {response.status_code}"
-                        err += f" - {response.text}"
-                    log.error(err)
+                        log.error(f"[linkedin] HTTP {response.status_code}: {response.text}")
                     return JobResponse(jobs=job_list)
             except Exception as e:
-                if "Proxy responded with" in str(e):
-                    log.error(f"LinkedIn: Bad proxy")
-                else:
-                    log.error(f"LinkedIn: {str(e)}")
+                log.error(f"[linkedin] search page request: {type(e).__name__}: {e}")
                 return JobResponse(jobs=job_list)
 
             soup = BeautifulSoup(response.text, "html.parser")
             job_cards = soup.find_all("div", class_="base-search-card")
             if len(job_cards) == 0:
+                log.warning("[linkedin] Returned 0 results — possible block or no matches")
                 return JobResponse(jobs=job_list)
 
             new_jobs_this_page = 0
@@ -262,12 +256,14 @@ class LinkedIn(Scraper):
         :param job_page_url:
         :return: dict
         """
+        log.debug(f"[linkedin] Fetching description for job_id={job_id}")
         try:
             response = self.session.get(
                 f"{self.base_url}/jobs/view/{job_id}", timeout=12
             )
             response.raise_for_status()
-        except Exception:
+        except Exception as e:
+            log.error(f"[linkedin] fetch description: {type(e).__name__}: {e}")
             return {}
 
         blocked_redirect_markers = [
@@ -277,6 +273,7 @@ class LinkedIn(Scraper):
             "expired_jd_redirect",
         ]
         if any(marker in response.url for marker in blocked_redirect_markers):
+            log.warning(f"[linkedin] Anti-bot wall detected on {response.url}")
             return {}
 
         soup = BeautifulSoup(response.text, "html.parser")
@@ -300,6 +297,7 @@ class LinkedIn(Scraper):
                 description = markdown_converter(description)
             elif description_format == DescriptionFormat.PLAIN:
                 description = plain_converter(description)
+            log.debug(f"[linkedin] Got {len(description)} char description")
         h3_tag = soup.find(
             "h3", string=lambda text_content: text_content and "Job function" in text_content.strip()
         )

@@ -16,7 +16,9 @@ from jobspy.util import (
     create_session,
     markdown_converter,
     extract_emails_from_text
-)
+, create_logger)
+
+log = create_logger("weworkremotely")
 
 class WeWorkRemotely(Scraper):
     """
@@ -47,6 +49,7 @@ class WeWorkRemotely(Scraper):
         """
         Scrape job postings from We Work Remotely.
         """
+        log.info(f"[weworkremotely] Starting scrape for {scraper_input.search_term or 'unknown'}")
         url = "https://weworkremotely.com/remote-jobs.rss"
         try:
             response = self.session.get(
@@ -54,9 +57,11 @@ class WeWorkRemotely(Scraper):
                 timeout=getattr(scraper_input, "request_timeout", 60)
             )
             if response.status_code != 200:
+                log.error(f"[weworkremotely] HTTP {response.status_code}: {url}")
                 return JobResponse(jobs=[])
             root = ET.fromstring(response.content)
-        except Exception:
+        except Exception as e:
+            log.error(f"[weworkremotely] Error: {type(e).__name__}: {e}")
             return JobResponse(jobs=[])
 
         jobs = []
@@ -93,8 +98,8 @@ class WeWorkRemotely(Scraper):
                         "%a, %d %b %Y %H:%M:%S"
                     )
                     date_posted = pub_date_parsed.date()
-                except Exception:
-                    pass
+                except Exception as date_parse_error:
+                    log.debug(f"[weworkremotely] Date parse failed: {date_parse_error}")
 
             emails = extract_emails_from_text(description) if description else []
 
@@ -114,4 +119,5 @@ class WeWorkRemotely(Scraper):
             if len(jobs) >= scraper_input.results_wanted:
                 break
 
+        log.info(f"[weworkremotely] Complete: {len(jobs)} jobs found")
         return JobResponse(jobs=jobs)
