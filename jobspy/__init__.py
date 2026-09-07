@@ -72,7 +72,7 @@ def scrape_jobs(
     offset: int | None = 0,
     hours_old: int = None,
     enforce_annual_salary: bool = False,
-    verbose: int = 0,
+    verbose: int = 1,
     user_agent: str = None,
     **kwargs,
 ) -> pd.DataFrame:
@@ -116,7 +116,7 @@ def scrape_jobs(
         Site.DIRECT_CAREERS: DirectCareers,
         Site.YC_STARTUP: YCStartup,
     }
-    set_logger_level(2)
+    set_logger_level(verbose)
     job_type = get_enum_from_value(job_type) if job_type else None
 
     def get_site_type():
