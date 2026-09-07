@@ -181,11 +181,11 @@ class TestLinkedInScraper(unittest.TestCase):
         job_details = self.scraper._get_job_details("500")
         self.assertEqual(job_details, {})
 
-    def test_scrape_breaks_early_on_partial_page(self):
+    def test_scrape_continues_past_partial_page_until_empty(self):
         """
-        Verify that search terminates early when a page returns fewer than 10 cards even if results_wanted is higher.
+        Verify that search continues past partial pages with fewer than 10 cards and terminates when a subsequent page returns zero cards.
         """
-        search_html = """
+        first_page_html = """
         <div>
             <div class="base-search-card">
                 <a class="base-card__full-link" href="https://www.linkedin.com/jobs/view/job-1?trk=public_jobs"></a>
@@ -197,10 +197,33 @@ class TestLinkedInScraper(unittest.TestCase):
             </div>
         </div>
         """
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.text = search_html
-        self.mock_session.get.return_value = mock_response
+        second_page_html = """
+        <div>
+            <div class="base-search-card">
+                <a class="base-card__full-link" href="https://www.linkedin.com/jobs/view/job-3?trk=public_jobs"></a>
+                <span class="sr-only">Engineer 3</span>
+            </div>
+        </div>
+        """
+        empty_page_html = "<div></div>"
+
+        mock_first_response = Mock()
+        mock_first_response.status_code = 200
+        mock_first_response.text = first_page_html
+
+        mock_second_response = Mock()
+        mock_second_response.status_code = 200
+        mock_second_response.text = second_page_html
+
+        mock_empty_response = Mock()
+        mock_empty_response.status_code = 200
+        mock_empty_response.text = empty_page_html
+
+        self.mock_session.get.side_effect = [
+            mock_first_response,
+            mock_second_response,
+            mock_empty_response,
+        ]
 
         scraper_input = ScraperInput(
             site_type=[Site.LINKEDIN],
@@ -210,5 +233,37 @@ class TestLinkedInScraper(unittest.TestCase):
         )
         response = self.scraper.scrape(scraper_input)
 
-        self.assertEqual(len(response.jobs), 2)
-        self.assertEqual(self.mock_session.get.call_count, 1)
+        self.assertEqual(len(response.jobs), 3)
+        self.assertEqual(self.mock_session.get.call_count, 3)
+
+    def test_scrape_breaks_on_consecutive_duplicate_pages(self):
+        """
+        Verify that search safely breaks when three consecutive pages return no new jobs.
+        """
+        repeated_page_html = """
+        <div>
+            <div class="base-search-card">
+                <a class="base-card__full-link" href="https://www.linkedin.com/jobs/view/job-repeat-1"></a>
+                <span class="sr-only">Engineer Repeat</span>
+            </div>
+        </div>
+        """
+        mock_responses = []
+        for _ in range(5):
+            mock_resp = Mock()
+            mock_resp.status_code = 200
+            mock_resp.text = repeated_page_html
+            mock_responses.append(mock_resp)
+
+        self.mock_session.get.side_effect = mock_responses
+
+        scraper_input = ScraperInput(
+            site_type=[Site.LINKEDIN],
+            search_term="Engineer",
+            results_wanted=200,
+            linkedin_fetch_description=False,
+        )
+        response = self.scraper.scrape(scraper_input)
+
+        self.assertEqual(len(response.jobs), 1)
+        self.assertEqual(self.mock_session.get.call_count, 4)

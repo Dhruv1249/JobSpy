@@ -81,6 +81,7 @@ class LinkedIn(Scraper):
         seen_ids = set()
         start = scraper_input.offset // 10 * 10 if scraper_input.offset else 0
         request_count = 0
+        consecutive_duplicate_pages = 0
         seconds_old = (
             scraper_input.hours_old * 3600 if scraper_input.hours_old else None
         )
@@ -165,8 +166,12 @@ class LinkedIn(Scraper):
                     except Exception as e:
                         raise LinkedInException(str(e))
 
-            if len(job_cards) < 10 or new_jobs_this_page == 0:
-                break
+            if new_jobs_this_page == 0:
+                consecutive_duplicate_pages += 1
+                if consecutive_duplicate_pages >= 3:
+                    break
+            else:
+                consecutive_duplicate_pages = 0
 
             if continue_search():
                 time.sleep(1.0)
