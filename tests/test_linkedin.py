@@ -180,3 +180,35 @@ class TestLinkedInScraper(unittest.TestCase):
         )
         job_details = self.scraper._get_job_details("500")
         self.assertEqual(job_details, {})
+
+    def test_scrape_breaks_early_on_partial_page(self):
+        """
+        Verify that search terminates early when a page returns fewer than 10 cards even if results_wanted is higher.
+        """
+        search_html = """
+        <div>
+            <div class="base-search-card">
+                <a class="base-card__full-link" href="https://www.linkedin.com/jobs/view/job-1?trk=public_jobs"></a>
+                <span class="sr-only">Engineer 1</span>
+            </div>
+            <div class="base-search-card">
+                <a class="base-card__full-link" href="https://www.linkedin.com/jobs/view/job-2?trk=public_jobs"></a>
+                <span class="sr-only">Engineer 2</span>
+            </div>
+        </div>
+        """
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = search_html
+        self.mock_session.get.return_value = mock_response
+
+        scraper_input = ScraperInput(
+            site_type=[Site.LINKEDIN],
+            search_term="Engineer",
+            results_wanted=200,
+            linkedin_fetch_description=False,
+        )
+        response = self.scraper.scrape(scraper_input)
+
+        self.assertEqual(len(response.jobs), 2)
+        self.assertEqual(self.mock_session.get.call_count, 1)

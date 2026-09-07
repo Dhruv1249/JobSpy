@@ -143,6 +143,7 @@ class LinkedIn(Scraper):
             if len(job_cards) == 0:
                 return JobResponse(jobs=job_list)
 
+            new_jobs_this_page = 0
             for job_card in job_cards:
                 href_tag = job_card.find("a", class_="base-card__full-link")
                 if href_tag and "href" in href_tag.attrs:
@@ -158,13 +159,17 @@ class LinkedIn(Scraper):
                         job_post = self._process_job(job_card, job_id, fetch_desc)
                         if job_post:
                             job_list.append(job_post)
+                            new_jobs_this_page += 1
                         if not continue_search():
                             break
                     except Exception as e:
                         raise LinkedInException(str(e))
 
+            if len(job_cards) < 10 or new_jobs_this_page == 0:
+                break
+
             if continue_search():
-                time.sleep(random.uniform(self.delay, self.delay + self.band_delay))
+                time.sleep(1.0)
                 start += len(job_cards)
 
         job_list = job_list[: scraper_input.results_wanted]
