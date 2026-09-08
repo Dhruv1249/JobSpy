@@ -47,7 +47,36 @@ _JOB_LINK_URL_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-_IGNORED_LINK_TEXTS = frozenset(["careers", "jobs", "apply", "view all", "learn more"])
+_NON_JOB_URL_SEGMENTS = frozenset([
+    "/teams", "/our-teams", "/about", "/culture", "/benefits", "/inclusion",
+    "/diversity", "/dei", "/students", "/internships", "/military", "/veterans",
+    "/indigenous", "/locations", "/faq", "/faqs", "/privacy", "/terms",
+    "/career-path", "/areas-work", "/find-your-future", "/candidate-experience",
+    "/application-hints", "/overview", "/life-at", "/working-at", "/values",
+    "/university", "/portal", "/home", "/blog", "/press", "/contact",
+    "/login", "/signin", "/register", "/alerts",
+])
+
+_IGNORED_LINK_TEXTS = frozenset([
+    "careers", "jobs", "apply", "view all", "learn more",
+    "explore", "explore opportunities", "explore all jobs", "see all",
+    "see open roles", "open roles", "open positions", "search jobs",
+    "browse jobs", "browse all", "apply now", "join us", "join our team",
+    "about us", "about our company", "our culture", "culture and values",
+    "culture", "benefits", "perks", "benefits and perks", "inclusion",
+    "diversity", "dei", "diversity, equity and inclusion", "veterans",
+    "military", "indigenous", "students", "early career", "early careers",
+    "university programs", "university recruiting", "our teams", "meet our teams",
+    "teams", "life at", "working at", "areas of work", "areas of opportunity",
+    "overview", "faq", "faqs", "privacy", "privacy policy", "terms", "terms of use",
+    "start your career", "find your future", "candidate experience", "application hints",
+    "hints & tips", "corporate & operations", "trade jobs", "tech jobs",
+    "field ops jobs", "headquarters jobs", "women in operations", "retail and consumer",
+    "resources and industrials", "government and defence", "aviation services",
+    "current employees", "talent community", "general inquiry", "contact us",
+    "subscribe", "newsletter", "sign in", "login", "register", "create account",
+    "saved jobs", "job alerts",
+])
 
 _LOGGER = create_logger("DirectCareers")
 
@@ -218,18 +247,29 @@ class DirectCareers(Scraper):
         """
         Construct a JobPost from a single JSON-LD JobPosting dict.
 
-        Returns None if the item lacks a title or is not a valid JobPosting.
+        Returns None if the item lacks a valid title, description, or matches non-job filters.
         """
         if not isinstance(ld_item, dict) or ld_item.get("@type") != "JobPosting":
             return None
 
         title = ld_item.get("title", "").strip()
-        if not title:
+        if not title or len(title) < 4 or len(title) > 120 or title.lower() in _IGNORED_LINK_TEXTS:
+            return None
+        if not any(character.isalpha() for character in title):
             return None
 
         job_url = ld_item.get("url") or career_url
+        if any(segment in job_url.lower() for segment in _NON_JOB_URL_SEGMENTS):
+            return None
+
         raw_description = ld_item.get("description", "")
-        description = _convert_description(raw_description, description_format) or f"Direct posting from {company_name}"
+        if not raw_description or len(raw_description.strip()) < 80:
+            return None
+
+        description = _convert_description(raw_description, description_format)
+        if not description or len(description.strip()) < 80:
+            return None
+
         date_posted = _parse_date_posted(ld_item.get("datePosted"))
         location_string, is_remote = _extract_location_from_ld_json(ld_item.get("jobLocation", {}))
 
@@ -312,8 +352,14 @@ class DirectCareers(Scraper):
                 for anchor_tag in embed_soup.find_all("a", href=True):
                     href = anchor_tag.get("href", "").strip()
                     full_url = urllib.parse.urljoin(embed_src, href)
+                    if any(segment in full_url.lower() or segment in href.lower() for segment in _NON_JOB_URL_SEGMENTS):
+                        continue
                     title = anchor_tag.get_text(strip=True)
-                    if title and len(title) >= 4 and full_url not in seen_urls:
+                    if not title or len(title) < 4 or len(title) > 120 or title.lower() in _IGNORED_LINK_TEXTS:
+                        continue
+                    if not any(character.isalpha() for character in title):
+                        continue
+                    if full_url not in seen_urls:
                         seen_urls.add(full_url)
                         extracted_jobs.append(
                             JobPost(
@@ -357,6 +403,9 @@ class DirectCareers(Scraper):
             if full_url in seen_urls:
                 continue
 
+            if any(segment in full_url.lower() or segment in href.lower() for segment in _NON_JOB_URL_SEGMENTS):
+                continue
+
             url_matches_job_pattern = (
                 _JOB_LINK_URL_PATTERN.search(full_url)
                 or _JOB_LINK_URL_PATTERN.search(href)
@@ -370,21 +419,29 @@ class DirectCareers(Scraper):
                 if parent_element:
                     title = parent_element.get_text(strip=True)
 
-            if title and 4 <= len(title) <= 120:
-                seen_urls.add(full_url)
-                extracted_jobs.append(
-                    JobPost(
-                        id=full_url,
-                        title=title,
-                        company_name=company_name,
-                        job_url=full_url,
-                        company_url=career_url,
-                        company_url_direct=career_url,
-                        location=Location(country="Remote"),
-                        description=f"Direct career posting from {company_name} at {full_url}",
-                        is_remote=True,
-                    )
+            if not title or len(title) < 4 or len(title) > 120 or title.lower() in _IGNORED_LINK_TEXTS:
+                continue
+
+            if title.lower().startswith(("learn more", "explore", "view all", "see all", "about ", "working at", "life at")):
+                continue
+
+            if not any(character.isalpha() for character in title):
+                continue
+
+            seen_urls.add(full_url)
+            extracted_jobs.append(
+                JobPost(
+                    id=full_url,
+                    title=title,
+                    company_name=company_name,
+                    job_url=full_url,
+                    company_url=career_url,
+                    company_url_direct=career_url,
+                    location=Location(country="Remote"),
+                    description=f"Direct career posting from {company_name} at {full_url}",
+                    is_remote=True,
                 )
+            )
 
         return extracted_jobs
 

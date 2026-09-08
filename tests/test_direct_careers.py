@@ -174,7 +174,7 @@ class TestDirectCareersScraper(unittest.TestCase):
             "@type": "JobPosting",
             "title": "Senior Backend Engineer",
             "url": "https://example.com/jobs/senior-backend-engineer",
-            "description": "We are looking for a senior engineer.",
+            "description": "We are looking for an experienced senior backend engineer to join our core distributed platforms team.",
             "datePosted": "2024-06-01",
             "jobLocation": {
                 "address": {"addressLocality": "San Francisco"}
@@ -264,6 +264,7 @@ class TestDirectCareersScraper(unittest.TestCase):
             "@type": "JobPosting",
             "title": "Data Engineer",
             "url": "https://example.com/jobs/data-engineer",
+            "description": "We are seeking a senior data engineer to design, implement, and maintain large-scale distributed analytics pipelines.",
             "datePosted": "2024-01-20",
         })
         html = f'<html><head><script type="application/ld+json">{ld_json_payload}</script></head><body></body></html>'
@@ -324,6 +325,7 @@ class TestDirectCareersScraper(unittest.TestCase):
             "@type": "JobPosting",
             "title": "On-Site Engineer",
             "url": "https://example.com/jobs/onsite",
+            "description": "We are seeking a talented on-site systems engineer to maintain server racks in our New York datacenter facility.",
             "jobLocation": {"address": {"addressLocality": "New York"}},
         })
         html = f'<html><head><script type="application/ld+json">{ld_json_payload}</script></head><body></body></html>'
@@ -347,7 +349,7 @@ class TestDirectCareersScraper(unittest.TestCase):
             "@type": "JobPosting",
             "title": "ML Engineer",
             "url": "https://example.com/jobs/ml",
-            "description": "<p>We need a <strong>talented</strong> engineer.</p>",
+            "description": "<p>We need a <strong>talented</strong> machine learning engineer to architect and train large distributed foundation models.</p>",
         })
         html = f'<html><head><script type="application/ld+json">{ld_json_payload}</script></head><body></body></html>'
         self.mock_session.get.return_value = self._make_mock_response(html)
@@ -371,7 +373,7 @@ class TestDirectCareersScraper(unittest.TestCase):
             "@type": "JobPosting",
             "title": "DevOps Engineer",
             "url": "https://example.com/jobs/devops",
-            "description": "<p>Join our <em>amazing</em> team.</p>",
+            "description": "<p>Join our <em>amazing</em> infrastructure engineering team to maintain robust Kubernetes clusters globally.</p>",
         })
         html = f'<html><head><script type="application/ld+json">{ld_json_payload}</script></head><body></body></html>'
         self.mock_session.get.return_value = self._make_mock_response(html)
@@ -395,6 +397,7 @@ class TestDirectCareersScraper(unittest.TestCase):
             "@type": "JobPosting",
             "title": "Frontend Engineer",
             "url": "https://frontendco.com/jobs/frontend",
+            "description": "We are looking for a skilled Frontend Engineer to build accessible and fast user interfaces across web and mobile platforms.",
         })
         html = f'<html><head><script type="application/ld+json">{ld_json_payload}</script></head><body></body></html>'
         self.mock_session.get.return_value = self._make_mock_response(html)
@@ -444,6 +447,7 @@ class TestDirectCareersScraper(unittest.TestCase):
             "@type": "JobPosting",
             "title": "Unique Role",
             "url": job_url,
+            "description": "We are seeking a talented engineer for this unique role in our distributed infrastructure group with deep experience.",
         })
         html = f"""<html>
             <head><script type="application/ld+json">{ld_json_payload}</script></head>
@@ -457,6 +461,74 @@ class TestDirectCareersScraper(unittest.TestCase):
 
         job_urls = [job.job_url for job in result]
         self.assertEqual(len(job_urls), len(set(job_urls)), "Duplicate job URLs found in results")
+
+    def test_scrape_ignores_non_job_url_segments(self):
+        """
+        Verify that anchor tags containing non-job path segments are rejected.
+        """
+        html = """<html><body>
+            <a href="/careers/inclusion">Inclusion</a>
+            <a href="/careers/culture">Our Culture</a>
+            <a href="/careers/benefits">Benefits and Perks</a>
+            <a href="/careers/teams">Meet Our Teams</a>
+            <a href="/careers/students">University Students</a>
+            <a href="/careers/military">Veterans & Military</a>
+            <a href="/careers/indigenous">Indigenous Programs</a>
+        </body></html>"""
+        self.mock_session.get.return_value = self._make_mock_response(html)
+
+        result = self.scraper.scrape_single_company("NavCorp", "https://navcorp.com/careers")
+        self.assertEqual(result, [])
+
+    def test_scrape_ignores_generic_navigation_link_titles(self):
+        """
+        Verify that anchor tags with generic navigation titles are rejected even with valid job URLs.
+        """
+        html = """<html><body>
+            <a href="/jobs/101">Learn more</a>
+            <a href="/jobs/102">View all</a>
+            <a href="/jobs/103">Explore</a>
+            <a href="/jobs/104">Apply now</a>
+            <a href="/jobs/105">University Programs</a>
+        </body></html>"""
+        self.mock_session.get.return_value = self._make_mock_response(html)
+
+        result = self.scraper.scrape_single_company("GenericCorp", "https://genericcorp.com/careers")
+        self.assertEqual(result, [])
+
+    def test_scrape_rejects_json_ld_with_short_description(self):
+        """
+        Verify that JSON-LD JobPosting with a description under 80 characters is discarded.
+        """
+        ld_json_payload = json.dumps({
+            "@type": "JobPosting",
+            "title": "Senior Infrastructure Architect",
+            "url": "https://example.com/jobs/infra-arch",
+            "description": "Short description.",
+            "datePosted": "2024-06-01",
+        })
+        html = f'<html><head><script type="application/ld+json">{ld_json_payload}</script></head><body></body></html>'
+        self.mock_session.get.return_value = self._make_mock_response(html)
+
+        result = self.scraper.scrape_single_company("ShortDescCorp", "https://example.com/careers")
+        self.assertEqual(result, [])
+
+    def test_scrape_rejects_json_ld_with_ignored_title_or_non_job_url(self):
+        """
+        Verify that JSON-LD JobPosting with non-job title or non-job URL is discarded.
+        """
+        ld_json_payload = json.dumps({
+            "@type": "JobPosting",
+            "title": "Culture and Values",
+            "url": "https://example.com/careers/culture",
+            "description": "This is a detailed overview of our culture, community values, and employee resource groups.",
+            "datePosted": "2024-06-01",
+        })
+        html = f'<html><head><script type="application/ld+json">{ld_json_payload}</script></head><body></body></html>'
+        self.mock_session.get.return_value = self._make_mock_response(html)
+
+        result = self.scraper.scrape_single_company("CultureCorp", "https://example.com/careers")
+        self.assertEqual(result, [])
 
 
 if __name__ == "__main__":
