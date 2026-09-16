@@ -59,7 +59,10 @@ class Lever(Scraper):
                 timeout=getattr(scraper_input, "request_timeout", 60)
             )
             if response.status_code != 200:
-                log.error(f"[lever] HTTP {response.status_code}: {url}")
+                if response.status_code == 404:
+                    log.info(f"[lever] Board not found (HTTP 404): {url}")
+                else:
+                    log.warning(f"[lever] HTTP {response.status_code}: {url}")
                 return JobResponse(jobs=[])
             data = response.json()
         except Exception as e:
@@ -67,7 +70,11 @@ class Lever(Scraper):
             return JobResponse(jobs=[])
 
         jobs = []
+        if not isinstance(data, list):
+            return JobResponse(jobs=[])
         for job_data in data:
+            if not isinstance(job_data, dict):
+                continue
             description_html = job_data.get("description", "")
             description_text = ""
             if description_html:

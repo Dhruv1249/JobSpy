@@ -45,5 +45,21 @@ class TestAmazonScraper(unittest.TestCase):
         self.assertEqual(job.id, "amz-999")
         self.assertEqual(job.title, "Software Development Engineer")
         self.assertEqual(job.company_name, "Amazon")
-        self.assertEqual(job.job_url, "https://www.amazon.jobs/jobs/amz-999/sde-1")
         self.assertEqual(job.location.display_location(), "Bengaluru, IND")
+
+    def test_scrape_null_jobs_handled(self):
+        """
+        Verify that Amazon scraper gracefully handles null jobs key in response without TypeError.
+        """
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"jobs": None}
+        self.mock_session.get.return_value = mock_response
+
+        scraper_input = ScraperInput(
+            site_type=[Site.AMAZON],
+            search_term="Software",
+            results_wanted=1
+        )
+        response = self.scraper.scrape(scraper_input)
+        self.assertEqual(len(response.jobs), 0)

@@ -57,7 +57,10 @@ class Amazon(Scraper):
             return JobResponse(jobs=[])
 
         jobs = []
-        for item in data.get("jobs", []):
+        raw_jobs_list = data.get("jobs") if isinstance(data, dict) else None
+        for item in (raw_jobs_list or []):
+            if not isinstance(item, dict):
+                continue
             job_id = str(item.get("id_icims") or item.get("id") or "")
             title = item.get("title", "")
             company = "Amazon"

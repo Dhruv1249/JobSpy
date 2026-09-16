@@ -89,7 +89,7 @@ class Dice(Scraper):
                 if relative_job_url.startswith("/")
                 else relative_job_url
             )
-            job_identifier = absolute_job_url.rstrip("/").split("/")[-1]
+            job_identifier = absolute_job_url.split("?")[0].split("#")[0].rstrip("/").split("/")[-1]
 
             if job_identifier in seen_job_identifiers:
                 continue
@@ -100,10 +100,13 @@ class Dice(Scraper):
                 if anchor_element.parent
                 and anchor_element.parent.parent
                 and anchor_element.parent.parent.parent
+                and anchor_element.parent.parent.parent.parent
                 else anchor_element
             )
             extracted_strings = [
-                text_item.strip() for text_item in card_container.stripped_strings if text_item.strip()
+                text_item.strip()
+                for text_item in (card_container.stripped_strings if card_container else [])
+                if text_item.strip()
             ]
 
             job_title = anchor_element.get_text(strip=True)

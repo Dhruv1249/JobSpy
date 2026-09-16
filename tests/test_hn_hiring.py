@@ -34,6 +34,7 @@ class TestHNHiringScraper(unittest.TestCase):
             "hits": [
                 {
                     "objectID": "888888",
+                    "parent_id": "999999",
                     "created_at": "2026-07-19T20:00:00Z",
                     "author": "john_doe",
                     "comment_text": "Notion | Software Engineer | SF | Full-time<br><br>We are hiring engineers..."

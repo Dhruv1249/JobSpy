@@ -58,7 +58,10 @@ class Ashby(Scraper):
                 timeout=getattr(scraper_input, "request_timeout", 60)
             )
             if response.status_code != 200:
-                log.error(f"[ashby] HTTP {response.status_code}: {url}")
+                if response.status_code == 404:
+                    log.info(f"[ashby] Board not found (HTTP 404): {url}")
+                else:
+                    log.warning(f"[ashby] HTTP {response.status_code}: {url}")
                 return JobResponse(jobs=[])
             data = response.json()
         except Exception as e:
@@ -66,7 +69,10 @@ class Ashby(Scraper):
             return JobResponse(jobs=[])
 
         jobs = []
-        for job_data in data.get("jobs", []):
+        raw_jobs_list = data.get("jobs") if isinstance(data, dict) else None
+        for job_data in (raw_jobs_list or []):
+            if not isinstance(job_data, dict):
+                continue
             description_html = job_data.get("descriptionHtml", "")
             description_text = ""
             if description_html:

@@ -458,12 +458,11 @@ class DirectCareers(Scraper):
         generated candidate URLs derived from the company name. Returns the
         first non-empty set of jobs found across all candidate URLs.
         """
-        candidate_urls = [career_url] if career_url else []
-        candidate_urls.extend(resolve_company_career_urls(company_name))
+        candidate_urls = [career_url] if career_url else resolve_company_career_urls(company_name)
 
         for target_url in candidate_urls:
             try:
-                response = self.session.get(target_url, timeout=15)
+                response = self.session.get(target_url, timeout=8)
                 if response.status_code != 200:
                     continue
 
