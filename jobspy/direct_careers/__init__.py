@@ -83,12 +83,11 @@ _LOGGER = create_logger("DirectCareers")
 
 def load_career_pages() -> list[tuple[str, str, str]]:
     """
-    Load the curated company career portal list from career_pages.csv.
-
-    Returns a list of (company_name, career_url, headquarters_footprint) tuples
-    for all companies in the CSV.
+    Load curated company career portals. Returns an empty list if CSV is absent.
     """
     entries: list[tuple[str, str, str]] = []
+    if not _CAREER_PAGES_CSV_PATH.exists():
+        return entries
     with open(_CAREER_PAGES_CSV_PATH, newline="", encoding="utf-8") as csv_file:
         for row in csv.DictReader(csv_file):
             company_name = row.get("Company Name", "").strip()

@@ -317,6 +317,8 @@ class Site(Enum):
     CORD = "cord"
     AMAZON = "amazon"
     MICROSOFT = "microsoft"
+    GOOGLE_CAREERS = "google_careers"
+    ORACLE_CLOUD = "oracle_cloud"
     DIRECT_CAREERS = "direct_careers"
     YC_STARTUP = "yc_startup"
 

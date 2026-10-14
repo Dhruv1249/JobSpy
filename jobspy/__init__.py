@@ -48,6 +48,8 @@ from jobspy.levelsfyi import LevelsFyi
 from jobspy.cord import Cord
 from jobspy.amazon import Amazon
 from jobspy.microsoft import Microsoft
+from jobspy.google_careers import GoogleCareers
+from jobspy.oracle_cloud import OracleCloud
 from jobspy.direct_careers import DirectCareers
 from jobspy.yc_startup import YCStartup
 
@@ -113,6 +115,8 @@ def scrape_jobs(
         Site.CORD: Cord,
         Site.AMAZON: Amazon,
         Site.MICROSOFT: Microsoft,
+        Site.GOOGLE_CAREERS: GoogleCareers,
+        Site.ORACLE_CLOUD: OracleCloud,
         Site.DIRECT_CAREERS: DirectCareers,
         Site.YC_STARTUP: YCStartup,
     }
