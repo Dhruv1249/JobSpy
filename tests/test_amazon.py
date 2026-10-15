@@ -63,3 +63,46 @@ class TestAmazonScraper(unittest.TestCase):
         )
         response = self.scraper.scrape(scraper_input)
         self.assertEqual(len(response.jobs), 0)
+
+    def test_scrape_india_country_mapping(self):
+        """
+        Verify that Amazon scraper correctly maps India location to country=IND in target URL.
+        """
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"jobs": []}
+        self.mock_session.get.return_value = mock_response
+
+        scraper_input = ScraperInput(
+            site_type=[Site.AMAZON],
+            search_term="Software Engineer",
+            location="India",
+            results_wanted=10,
+        )
+        self.scraper.scrape(scraper_input)
+
+        called_url = self.mock_session.get.call_args[0][0]
+        self.assertIn("country=IND", called_url)
+        self.assertTrue("base_query=Software+Engineer" in called_url or "base_query=Software Engineer" in called_url)
+
+
+    def test_scrape_remote_query_mapping(self):
+        """
+        Verify that Amazon scraper appends remote keyword when is_remote is requested.
+        """
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"jobs": []}
+        self.mock_session.get.return_value = mock_response
+
+        scraper_input = ScraperInput(
+            site_type=[Site.AMAZON],
+            search_term="Backend Developer",
+            is_remote=True,
+            results_wanted=10,
+        )
+        self.scraper.scrape(scraper_input)
+
+        called_url = self.mock_session.get.call_args[0][0]
+        self.assertIn("remote", called_url.lower())
+
